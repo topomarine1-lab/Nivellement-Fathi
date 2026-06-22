@@ -1,0 +1,68 @@
+{
+  "name": "SubTopo Engineering - Nivellement Calculator",
+  "short_name": "SubTopo Niv",
+  "description": "Calculateur professionnel de nivellement topographique : Cheminement, Rayonnement, Profil, Cubature et Trigonométrique.",
+  "id": "/Nivellement-Fathi/",
+  "start_url": "/Nivellement-Fathi/index.html",
+  "scope": "/Nivellement-Fathi/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#0a2e2a",
+  "theme_color": "#10b981",
+  "lang": "fr",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "SubTopo Niv - Cheminement"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "SubTopo Niv - Vue desktop"
+    }
+  ],
+  "categories": ["utilities", "productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Cheminement",
+      "short_name": "Chemin",
+      "description": "Calcul de cheminement",
+      "url": "/Nivellement-Fathi/index.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
