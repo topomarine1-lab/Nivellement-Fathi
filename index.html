@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="fr" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#10b981">
+<title>SubTopo - Nivellement Calculator</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SubTopo Niv">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg-darkest:#071f1c; --bg-dark:#0a2e2a; --bg-card:#0f3a35; --bg-card-2:#0d342f;
+  --border:#1a5f56; --emerald:#10b981; --emerald-light:#34d399; --emerald-dark:#059669;
+  --text:#ffffff; --text-soft:#a7f3d0; --danger:#ef4444; --warning:#f59e0b;
+}
+body {
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg-darkest); min-height:100vh; color:var(--text); overflow-x:hidden;
+}
+
+/* LOGIN */
+#loginOverlay {
+  position:fixed; inset:0; z-index:9999;
+  background:linear-gradient(135deg,#071f1c 0%,#0a2e2a 50%,#071f1c 100%);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+#loginOverlay.hidden { display:none; }
+.login-box {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:20px; padding:40px 30px; max-width:400px; width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.5); text-align:center;
+}
+.login-logo {
+  width:80px; height:80px; border-radius:20px; margin:0 auto 20px;
+  background:linear-gradient(135deg,#fff,#e8f5e9);
+  display:flex; align-items:center; justify-content:center; font-size:46px;
+  box-shadow:0 8px 24px rgba(16,185,129,.3); overflow:hidden;
+}
+.login-logo img { width:100%; height:100%; object-fit:cover; }
+.login-title { font-size:22px; font-weight:800; margin-bottom:8px; }
+.login-sub { font-size:13px; color:var(--text-soft); margin-bottom:30px; }
+.login-box input {
+  width:100%; padding:14px 16px; background:var(--bg-dark); color:#fff;
+  border:1px solid var(--border); border-radius:12px;
+  font-size:15px; margin-bottom:12px; text-align:center; letter-spacing:3px;
+}
+.login-box input:focus {
+  outline:none; border-color:var(--emerald);
+  box-shadow:0 0 0 3px rgba(16,185,129,.2);
+}
+.login-btn {
+  width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,var(--emerald),var(--emerald-dark));
+  color:#fff; font-weight:700; font-size:15px; cursor:pointer; letter-spacing:1px;
+}
+.login-error { color:var(--danger); font-size:13px; margin-top:10px; min-height:18px; }
+.login-footer {
+  margin-top:24px; padding-top:20px; border-top:1px solid var(--border);
+  font-size:11px; color:var(--text-soft);
+}
+
+/* HEADER */
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; background:var(--bg-dark);
+  border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100;
+  gap:10px;
+}
+.logo { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+.logo-icon {
+  width:46px; height:46px; border-radius:12px; overflow:hidden;
+  background:linear-gradient(135deg,#fff,#d1fae5);
+  display:flex; align-items:center; justify-content:center; font-size:26px;
+  box-shadow:0 4px 12px rgba(16,185,129,.3); flex-shrink:0;
+}
+.logo-icon img { width:100%; height:100%; object-fit:cover; }
+.logo-text h1 { font-size:15px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.logo-text p { font-size:10px; color:var(--text-soft); margin-top:2px; }
+.header-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.icon-btn {
+  background:transparent; border:1px solid var(--border);
+  color:var(--text-soft); padding:8px 10px; border-radius:8px;
+  font-size:13px; cursor:pointer;
+}
+.icon-btn:hover { background:var(--bg-card); color:#fff; }
+
+/* TABS */
+.tabs {
+  display:flex; background:var(--bg-dark);
+  border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab {
+  flex:1; min-width:110px; padding:14px 8px; border:none; background:transparent;
+  color:var(--text-soft); font-size:12px; font-weight:600;
+  cursor:pointer; transition:all .3s;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  border-bottom:2px solid transparent;
+}
+.tab:hover { color:#fff; background:rgba(16,185,129,.05); }
+.tab.active {
+  color:var(--emerald-light); border-bottom-color:var(--emerald);
+  background:rgba(16,185,129,.08);
+}
+.tab-icon { font-size:18px; }
+
+/* PANELS */
+.panel { display:none; padding:16px; animation:fadeIn .3s; }
+.panel.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:14px; padding:20px; margin-bottom:16px;
+}
+.card-title {
+  font-size:12px; font-weight:700; color:var(--emerald-light);
+  text-transform:uppercase; letter-spacing:2px; margin-bottom:16px;
+}
+
+.field { margin-bottom:14px; }
+label {
+  display:block; font-size:11px; font-weight:700; color:var(--emerald-light);
+  text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px;
+}
+input, select {
+  width:100%; padding:12px 14px; background:var(--bg-dark); color:#fff;
+  border:1px solid var(--border); border-radius:10px;
+  font-size:14px; font-weight:500;
+}
+input:focus, select:focus {
+  outline:none; border-color:var(--emerald);
+  box-shadow:0 0 0 3px rgba(16,185,129,.15);
+}
+.row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+
+.btn {
+  width:100%; padding:14px; border:none; border-radius:10px;
+  font-size:14px; font-weight:700; cursor:pointer; transition:all .3s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:8px; letter-spacing:.3px;
+}
+.btn-primary { background:var(--emerald); color:#fff; }
+.btn-primary:hover { background:var(--emerald-dark); }
+.btn-outline { background:transparent; color:#fff; border:1px solid var(--border); }
+.btn-outline:hover { background:var(--bg-card-2); border-color:var(--emerald); }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-sm { padding:8px 12px; font-size:12px; }
+
+/* TABLEAUX */
+.data-table {
+  width:100%; border-collapse:collapse; margin-top:14px;
+  background:var(--bg-card-2); border-radius:10px; overflow:hidden; font-size:12px;
+}
+.data-table th {
+  background:var(--bg-dark); padding:8px 6px; text-align:center;
+  font-size:10px; text-transform:uppercase; letter-spacing:1px;
+  color:var(--emerald-light); border-bottom:2px solid var(--emerald);
+}
+.data-table td {
+  padding:6px 4px; text-align:center; border-bottom:1px solid var(--border);
+  color:#fff;
+}
+.data-table input {
+  width:100%; padding:6px 4px; background:transparent; color:#fff;
+  border:1px solid transparent; border-radius:4px; font-size:12px;
+  text-align:center; font-family:'Courier New',monospace;
+}
+.data-table input:focus { border-color:var(--emerald); background:rgba(16,185,129,.1); }
+.data-table .computed { background:rgba(16,185,129,.08); font-weight:700; color:var(--emerald-light); }
+.data-table .delete-btn {
+  background:var(--danger); color:#fff; border:none;
+  width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:10px;
+}
+
+.info-row {
+  display:flex; justify-content:space-between; padding:10px 14px;
+  background:var(--bg-card-2); border-radius:8px; margin-bottom:6px;
+  font-size:13px; border:1px solid var(--border);
+}
+.info-row b { color:var(--emerald-light); }
+.info-row span { color:#fff; font-family:'Courier New',monospace; font-weight:700; }
+
+.summary-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;
+}
+.summary-item {
+  background:var(--bg-card-2); padding:12px; border-radius:10px;
+  border-left:3px solid var(--emerald); text-align:center;
+}
+.summary-label {
+  font-size:10px; color:var(--text-soft); text-transform:uppercase;
+  letter-spacing:1.5px; margin-bottom:4px;
+}
+.summary-value {
+  font-size:18px; font-weight:800; color:var(--emerald-light);
+  font-family:'Courier New',monospace;
+}
+
+.alert {
+  padding:12px 14px; border-radius:8px; margin-top:10px;
+  display:flex; align-items:center; gap:10px; font-size:13px;
+}
+.alert-success { background:rgba(16,185,129,.15); border:1px solid var(--emerald); color:var(--emerald-light); }
+.alert-warning { background:rgba(245,158,11,.15); border:1px solid var(--warning); color:#fcd34d; }
+.alert-danger { background:rgba(239,68,68,.15); border:1px solid var(--danger); color:#fca5a5; }
+
+#chartContainer { background:#fff; border-radius:10px; padding:10px; margin-top:14px; }
+
+.empty { text-align:center; padding:40px 20px; color:var(--text-soft); }
+.empty span { font-size:60px; display:block; margin-bottom:12px; opacity:.4; }
+
+.toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(100px);
+  background:var(--bg-card); color:#fff; padding:14px 24px; border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.6); border:1px solid var(--emerald);
+  z-index:1000; transition:transform .4s; font-weight:600; font-size:14px;
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+footer {
+  text-align:center; padding:16px; font-size:11px; color:var(--text-soft);
+  opacity:.7; border-top:1px solid var(--border); margin-top:20px;
+}
+
+@media (max-width:600px) {
+  .row, .row-3 { grid-template-columns:1fr; }
+  .data-table { font-size:11px; }
+  .data-table input { font-size:11px; padding:4px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo" id="loginLogo">📐</div>
+    <div class="login-title">SubTopo Engineering</div>
+    <div class="login-sub">Nivellement Calculator — Accès protégé</div>
+    <input type="password" id="pwdInput" placeholder="••••••••••" autocomplete="off">
+    <button class="login-btn" onclick="tryLogin()">🔓 SE CONNECTER</button>
+    <div class="login-error" id="pwdError"></div>
+    <div class="login-footer">© 2025 SubTopo Engineering — <b style="color:var(--emerald-light)">NASRAOUI FATHI</b></div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon" id="headerLogo">📐</div>
+    <div class="logo-text">
+      <h1>SubTopo - Nivellement</h1>
+      <p>Topographic Leveling</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" onclick="newProject()" title="Nouveau projet">📄</button>
+    <button class="icon-btn" onclick="logout()" title="Quitter">🚪</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="cheminement">
+    <span class="tab-icon">📋</span>Cheminement
+  </button>
+  <button class="tab" data-tab="rayonnement">
+    <span class="tab-icon">🎯</span>Rayonnement
+  </button>
+  <button class="tab" data-tab="profil">
+    <span class="tab-icon">📊</span>Profil
+  </button>
+  <button class="tab" data-tab="cubature">
+    <span class="tab-icon">📏</span>Cubature
+  </button>
+  <button class="tab" data-tab="trigo">
+    <span class="tab-icon">📐</span>Trigo
+  </button>
+  <button class="tab" data-tab="export">
+    <span class="tab-icon">📤</span>Export
+  </button>
+</nav>
+
+<!-- CHEMINEMENT -->
+<section id="cheminement" class="panel active">
+  <div class="card">
+    <div class="card-title">📋 Paramètres du Cheminement</div>
+    <div class="row">
+      <div class="field">
+        <label>Point de départ (Repère)</label>
+        <input type="text" id="ch_pointStart" placeholder="R1" value="R1">
+      </div>
+      <div class="field">
+        <label>Cote départ (m)</label>
+        <input type="number" id="ch_coteStart" step="0.001" value="100.000">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Type cheminement</label>
+        <select id="ch_type">
+          <option value="ouvert">Ouvert (A→B)</option>
+          <option value="ferme">Fermé (A→A)</option>
+          <option value="encadre">Encadré (A→B avec B connu)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="lblCoteEnd">Cote arrivée (m) [si encadré]</label>
+        <input type="number" id="ch_coteEnd" step="0.001" placeholder="Optionnel">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Carnet de Nivellement</div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="ch_table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Point</th>
+            <th>AR (m)</th>
+            <th>AV (m)</th>
+            <th>Dist (m)</th>
+            <th>ΔH</th>
+            <th>Cote</th>
+            <th>×</th>
+          </tr>
+        </thead>
+        <tbody id="ch_tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="addCheminementRow()">➕ Ajouter point</button>
+    <button class="btn btn-primary" onclick="calculateCheminement()">🧮 Calculer Cheminement</button>
+  </div>
+
+  <div class="card" id="ch_results" style="display:none;">
+    <div class="card-title">✅ Résultats</div>
+    <div id="ch_summary"></div>
+  </div>
+</section>
+
+<!-- RAYONNEMENT -->
+<section id="rayonnement" class="panel">
+  <div class="card">
+    <div class="card-title">🎯 Station de rayonnement</div>
+    <div class="row">
+      <div class="field">
+        <label>Nom station</label>
+        <input type="text" id="ra_station" placeholder="Station S1" value="S1">
+      </div>
+      <div class="field">
+        <label>Cote station (m)</label>
+        <input type="number" id="ra_cote" step="0.001" value="100.000">
+      </div>
+    </div>
+    <div class="field">
+      <label>Lecture AR sur Repère (m)</label>
+      <input type="number" id="ra_AR" step="0.001" placeholder="1.523">
+    </div>
+    <div class="info-row">
+      <b>Plan de visée :</b>
+      <span id="ra_planVisee">--</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Points rayonnés</div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="ra_table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Point</th>
+            <th>Lecture (m)</th>
+            <th>Cote (m)</th>
+            <th>×</th>
+          </tr>
+        </thead>
+        <tbody id="ra_tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="addRayonnementRow()">➕ Ajouter point</button>
+    <button class="btn btn-primary" onclick="calculateRayonnement()">🧮 Calculer Rayonnement</button>
+  </div>
+</section>
+
+<!-- PROFIL EN LONG -->
+<section id="profil" class="panel">
+  <div class="card">
+    <div class="card-title">📊 Profil en Long</div>
+    <p style="color:var(--text-soft); font-size:13px; margin-bottom:12px;">
+      Saisissez les points avec leur distance cumulée et leur cote pour générer le profil.
+    </p>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="pr_table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Point</th>
+            <th>Dist Cum. (m)</th>
+            <th>Cote TN (m)</th>
+            <th>Cote Projet (m)</th>
+            <th>Déblai/Remblai</th>
+            <th>×</th>
+          </tr>
+        </thead>
+        <tbody id="pr_tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="addProfilRow()">➕ Ajouter point</button>
+    <button class="btn btn-primary" onclick="calculateProfil()">📈 Générer Profil</button>
+    <div id="chartContainer" style="display:none;">
+      <canvas id="profilChart"></canvas>
+    </div>
+    <div id="pr_summary"></div>
+  </div>
+</section>
+
+<!-- CUBATURE -->
+<section id="cubature" class="panel">
+  <div class="card">
+    <div class="card-title">📏 Calcul de Cubature (Volumes)</div>
+    <div class="field">
+      <label>Méthode de calcul</label>
+      <select id="cu_method">
+        <option value="moyenne">Moyenne des aires</option>
+        <option value="simpson">Formule de Simpson</option>
+        <option value="prismatique">Méthode prismatique</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="cu_table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Section</th>
+            <th>Dist (m)</th>
+            <th>Aire Déblai (m²)</th>
+            <th>Aire Remblai (m²)</th>
+            <th>Vol Déblai</th>
+            <th>Vol Remblai</th>
+            <th>×</th>
+          </tr>
+        </thead>
+        <tbody id="cu_tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="addCubatureRow()">➕ Ajouter section</button>
+    <button class="btn btn-primary" onclick="calculateCubature()">🧮 Calculer Volumes</button>
+    <div id="cu_summary"></div>
+  </div>
+</section>
+
+<!-- NIVELLEMENT TRIGONOMÉTRIQUE -->
+<section id="trigo" class="panel">
+  <div class="card">
+    <div class="card-title">📐 Nivellement Trigonométrique</div>
+    <div class="row">
+      <div class="field">
+        <label>Cote station (m)</label>
+        <input type="number" id="tr_coteStation" step="0.001" value="100.000">
+      </div>
+      <div class="field">
+        <label>Hauteur instrument hi (m)</label>
+        <input type="number" id="tr_hi" step="0.001" value="1.500">
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="tr_table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Point</th>
+            <th>Dist D (m)</th>
+            <th>Angle V (°)</th>
+            <th>Hauteur voyant hv (m)</th>
+            <th>ΔH</th>
+            <th>Cote</th>
+            <th>×</th>
+          </tr>
+        </thead>
+        <tbody id="tr_tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="addTrigoRow()">➕ Ajouter point</button>
+    <button class="btn btn-primary" onclick="calculateTrigo()">🧮 Calculer Trigonométrique</button>
+    <div class="alert alert-success" style="margin-top:10px;">
+      <span>ℹ️</span>
+      <span>Formule : ΔH = D × tan(90°-V) + hi - hv</span>
+    </div>
+  </div>
+</section>
+
+<!-- EXPORT -->
+<section id="export" class="panel">
+  <div class="card">
+    <div class="card-title">📤 Export des résultats</div>
+    <button class="btn btn-primary" onclick="exportData('pdf')">📑 Export PDF (Rapport complet)</button>
+    <button class="btn btn-primary" onclick="exportData('csv')">📊 Export CSV (Excel)</button>
+    <button class="btn btn-primary" onclick="exportData('dxf')">📐 Export DXF (AutoCAD)</button>
+    <button class="btn btn-outline" onclick="exportData('txt')">📋 Rapport texte</button>
+  </div>
+  <div class="card">
+    <div class="card-title">💾 Sauvegarder le projet</div>
+    <div class="field">
+      <label>Nom du projet</label>
+      <input type="text" id="projectName" placeholder="Projet route nationale...">
+    </div>
+    <button class="btn btn-primary" onclick="saveProject()">💾 Sauvegarder en local</button>
+    <button class="btn btn-outline" onclick="loadProject()">📂 Charger un projet</button>
+  </div>
+</section>
+
+<footer>© 2025 SubTopo Engineering — Developed by <b>NASRAOUI FATHI</b></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ PASSWORD ============
+const APP_PASSWORD = 'Subtopo@2025';
+const SESSION_KEY = 'niv_auth_v1';
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem(SESSION_KEY) === 'ok') {
+    document.getElementById('loginOverlay').classList.add('hidden');
+  } else { document.getElementById('pwdInput').focus(); }
+  // Init avec 3 lignes par défaut
+  for (let i=0; i<3; i++) addCheminementRow();
+  for (let i=0; i<3; i++) addRayonnementRow();
+  for (let i=0; i<3; i++) addProfilRow();
+  for (let i=0; i<3; i++) addCubatureRow();
+  for (let i=0; i<3; i++) addTrigoRow();
+});
+
+document.getElementById('pwdInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') tryLogin();
+});
+
+function tryLogin() {
+  const v = document.getElementById('pwdInput').value;
+  const err = document.getElementById('pwdError');
+  if (v === APP_PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, 'ok');
+    document.getElementById('loginOverlay').classList.add('hidden');
+    setTimeout(()=>toast('✅ Bienvenue !'), 300);
+  } else {
+    err.textContent = '❌ Mot de passe incorrect';
+    document.getElementById('pwdInput').value = '';
+    setTimeout(()=>err.textContent='', 3000);
+  }
+}
+
+function logout() {
+  if (confirm('Quitter ?')) { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
+}
+
+function newProject() {
+  if (!confirm('Nouveau projet ? Toutes les données seront effacées.')) return;
+  document.getElementById('ch_tbody').innerHTML = '';
+  document.getElementById('ra_tbody').innerHTML = '';
+  document.getElementById('pr_tbody').innerHTML = '';
+  document.getElementById('cu_tbody').innerHTML = '';
+  document.getElementById('tr_tbody').innerHTML = '';
+  document.getElementById('ch_results').style.display = 'none';
+  for (let i=0; i<3; i++) addCheminementRow();
+  for (let i=0; i<3; i++) addRayonnementRow();
+  for (let i=0; i<3; i++) addProfilRow();
+  for (let i=0; i<3; i++) addCubatureRow();
+  for (let i=0; i<3; i++) addTrigoRow();
+  toast('✅ Nouveau projet');
+}
+
+function toast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+// ============ CHEMINEMENT ============
+let chRowCount = 0;
+function addCheminementRow() {
+  chRowCount++;
+  const tbody = document.getElementById('ch_tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${chRowCount}</td>
+    <td><input type="text" class="ch-point" placeholder="P${chRowCount}"></td>
+    <td><input type="number" step="0.001" class="ch-ar" placeholder="AR"></td>
+    <td><input type="number" step="0.001" class="ch-av" placeholder="AV"></td>
+    <td><input type="number" step="0.1" class="ch-dist" placeholder="m"></td>
+    <td class="computed ch-dh">-</td>
+    <td class="computed ch-cote">-</td>
+    <td><button class="delete-btn" onclick="this.closest('tr').remove(); calculateCheminement();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function calculateCheminement() {
+  const rows = document.querySelectorAll('#ch_tbody tr');
+  if (rows.length === 0) return toast('❌ Aucune donnée');
+  
+  let coteStart = parseFloat(document.getElementById('ch_coteStart').value) || 100;
+  let coteEnd = parseFloat(document.getElementById('ch_coteEnd').value);
+  const chType = document.getElementById('ch_type').value;
+  
+  let sumAR = 0, sumAV = 0, sumDist = 0;
+  let currentCote = coteStart;
+  let prevAR = null;
+  const data = [];
+  
+  rows.forEach((row, i) => {
+    const point = row.querySelector('.ch-point').value || `P${i+1}`;
+    const ar = parseFloat(row.querySelector('.ch-ar').value) || 0;
+    const av = parseFloat(row.querySelector('.ch-av').value) || 0;
+    const dist = parseFloat(row.querySelector('.ch-dist').value) || 0;
+    
+    let dh = 0;
+    if (i === 0) {
+      // Premier point = repère
+      if (ar > 0) prevAR = ar;
+      row.querySelector('.ch-dh').textContent = '-';
+      row.querySelector('.ch-cote').textContent = coteStart.toFixed(3);
+    } else {
+      if (prevAR !== null && av > 0) {
+        dh = prevAR - av;
+        currentCote += dh;
+        row.querySelector('.ch-dh').textContent = (dh >= 0 ? '+' : '') + dh.toFixed(3);
+        row.querySelector('.ch-cote').textContent = currentCote.toFixed(3);
+      }
+      if (ar > 0) prevAR = ar;
+    }
+    sumAR += ar;
+    sumAV += av;
+    sumDist += dist;
+    data.push({ point, ar, av, dist, dh, cote: currentCote });
+  });
+  
+  // Compensation
+  let fz = 0, T = 0, message = '';
+  if (chType === 'ferme') {
+    fz = currentCote - coteStart;
+    T = 5 * Math.sqrt(sumDist/1000); // Tolérance en mm pour km
+    message = `Cheminement fermé`;
+  } else if (chType === 'encadre' && !isNaN(coteEnd)) {
+    fz = currentCote - coteEnd;
+    T = 5 * Math.sqrt(sumDist/1000);
+    message = `Cheminement encadré`;
+  } else {
+    message = `Cheminement ouvert`;
+  }
+  
+  const fzMM = fz * 1000;
+  const isOk = Math.abs(fzMM) <= T;
+  
+  document.getElementById('ch_results').style.display = 'block';
+  document.getElementById('ch_summary').innerHTML = `
+    <div class="info-row"><b>${message}</b><span></span></div>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Σ AR</div>
+        <div class="summary-value">${sumAR.toFixed(3)} m</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Σ AV</div>
+        <div class="summary-value">${sumAV.toFixed(3)} m</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">ΔH total</div>
+        <div class="summary-value">${(currentCote-coteStart).toFixed(3)} m</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Distance totale</div>
+        <div class="summary-value">${sumDist.toFixed(1)} m</div>
+      </div>
+    </div>
+    ${chType !== 'ouvert' ? `
+      <div class="info-row"><b>Erreur fz</b><span>${fzMM.toFixed(2)} mm</span></div>
+      <div class="info-row"><b>Tolérance T</b><span>± ${T.toFixed(2)} mm</span></div>
+      <div class="alert ${isOk ? 'alert-success' : 'alert-danger'}">
+        <span>${isOk ? '✅' : '❌'}</span>
+        <span>${isOk ? 'Erreur < Tolérance — Compensation possible' : 'Erreur > Tolérance — Refaire le levé !'}</span>
+      </div>
+    ` : ''}
+  `;
+  
+  window.cheminementData = { data, sumAR, sumAV, sumDist, fz, T, chType, coteStart, coteEnd };
+  toast('✅ Calcul terminé');
+}
+
+// ============ RAYONNEMENT ============
+let raRowCount = 0;
+function addRayonnementRow() {
+  raRowCount++;
+  const tbody = document.getElementById('ra_tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${raRowCount}</td>
+    <td><input type="text" class="ra-point" placeholder="P${raRowCount}"></td>
+    <td><input type="number" step="0.001" class="ra-lecture" placeholder="Lecture"></td>
+    <td class="computed ra-cote">-</td>
+    <td><button class="delete-btn" onclick="this.closest('tr').remove(); calculateRayonnement();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function calculateRayonnement() {
+  const coteStation = parseFloat(document.getElementById('ra_cote').value) || 0;
+  const AR = parseFloat(document.getElementById('ra_AR').value) || 0;
+  
+  if (AR === 0) return toast('❌ Saisir AR sur repère');
+  
+  const planVisee = coteStation + AR;
+  document.getElementById('ra_planVisee').textContent = planVisee.toFixed(3) + ' m';
+  
+  const rows = document.querySelectorAll('#ra_tbody tr');
+  const data = [];
+  rows.forEach(row => {
+    const point = row.querySelector('.ra-point').value;
+    const lecture = parseFloat(row.querySelector('.ra-lecture').value) || 0;
+    if (lecture > 0) {
+      const cote = planVisee - lecture;
+      row.querySelector('.ra-cote').textContent = cote.toFixed(3);
+      data.push({ point, lecture, cote });
+    } else {
+      row.querySelector('.ra-cote').textContent = '-';
+    }
+  });
+  
+  window.rayonnementData = { coteStation, AR, planVisee, data };
+  toast(`✅ ${data.length} points calculés`);
+}
+
+// ============ PROFIL EN LONG ============
+let prRowCount = 0;
+let profilChart = null;
+function addProfilRow() {
+  prRowCount++;
+  const tbody = document.getElementById('pr_tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${prRowCount}</td>
+    <td><input type="text" class="pr-point" placeholder="P${prRowCount}"></td>
+    <td><input type="number" step="0.01" class="pr-dist" placeholder="0"></td>
+    <td><input type="number" step="0.001" class="pr-coteTN" placeholder="TN"></td>
+    <td><input type="number" step="0.001" class="pr-coteProj" placeholder="Projet"></td>
+    <td class="computed pr-dr">-</td>
+    <td><button class="delete-btn" onclick="this.closest('tr').remove();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function calculateProfil() {
+  const rows = document.querySelectorAll('#pr_tbody tr');
+  const data = [];
+  let sumDeblai = 0, sumRemblai = 0;
+  
+  rows.forEach(row => {
+    const point = row.querySelector('.pr-point').value;
+    const dist = parseFloat(row.querySelector('.pr-dist').value);
+    const tn = parseFloat(row.querySelector('.pr-coteTN').value);
+    const proj = parseFloat(row.querySelector('.pr-coteProj').value);
+    
+    if (!isNaN(dist) && !isNaN(tn)) {
+      let dr = '-';
+      if (!isNaN(proj)) {
+        const diff = tn - proj;
+        if (diff > 0) {
+          dr = `Déblai ${diff.toFixed(3)}m`;
+          sumDeblai += diff;
+          row.querySelector('.pr-dr').style.color = '#fca5a5';
+        } else if (diff < 0) {
+          dr = `Remblai ${Math.abs(diff).toFixed(3)}m`;
+          sumRemblai += Math.abs(diff);
+          row.querySelector('.pr-dr').style.color = '#34d399';
+        } else {
+          dr = 'Niveau';
+        }
+        row.querySelector('.pr-dr').textContent = dr;
+      }
+      data.push({ point, dist, tn, proj });
+    }
+  });
+  
+  if (data.length < 2) return toast('❌ Minimum 2 points');
+  
+  // Calculer pente
+  const pente = ((data[data.length-1].tn - data[0].tn) / (data[data.length-1].dist - data[0].dist) * 100).toFixed(2);
+  const denMax = Math.max(...data.map(d=>d.tn)) - Math.min(...data.map(d=>d.tn));
+  
+  // Graphique
+  document.getElementById('chartContainer').style.display = 'block';
+  if (profilChart) profilChart.destroy();
+  
+  const ctx = document.getElementById('profilChart').getContext('2d');
+  const datasets = [{
+    label: 'Terrain Naturel (TN)',
+    data: data.map(d => ({ x: d.dist, y: d.tn })),
+    borderColor: '#10b981',
+    backgroundColor: 'rgba(16,185,129,.2)',
+    tension: 0.3,
+    fill: true
+  }];
+  
+  if (data.some(d => !isNaN(d.proj))) {
+    datasets.push({
+      label: 'Projet',
+      data: data.filter(d=>!isNaN(d.proj)).map(d => ({ x: d.dist, y: d.proj })),
+      borderColor: '#ef4444',
+      backgroundColor: 'rgba(239,68,68,.1)',
+      borderDash: [5,5],
+      tension: 0.3
+    });
+  }
+  
+  profilChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Profil en Long' },
+        legend: { position: 'bottom' }
+      },
+      scales: {
+        x: { type: 'linear', title: { display: true, text: 'Distance (m)' } },
+        y: { title: { display: true, text: 'Cote (m)' } }
+      }
+    }
+  });
+  
+  document.getElementById('pr_summary').innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Pente moyenne</div>
+        <div class="summary-value">${pente} %</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Dénivelé max</div>
+        <div class="summary-value">${denMax.toFixed(2)} m</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Σ Déblai</div>
+        <div class="summary-value" style="color:#fca5a5">${sumDeblai.toFixed(2)} m</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Σ Remblai</div>
+        <div class="summary-value" style="color:#34d399">${sumRemblai.toFixed(2)} m</div>
+      </div>
+    </div>
+  `;
+  
+  window.profilData = { data, pente, denMax, sumDeblai, sumRemblai };
+  toast('✅ Profil généré');
+}
+
+// ============ CUBATURE ============
+let cuRowCount = 0;
+function addCubatureRow() {
+  cuRowCount++;
+  const tbody = document.getElementById('cu_tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${cuRowCount}</td>
+    <td><input type="text" class="cu-section" placeholder="S${cuRowCount}"></td>
+    <td><input type="number" step="0.1" class="cu-dist" placeholder="Distance"></td>
+    <td><input type="number" step="0.01" class="cu-aire-d" placeholder="0"></td>
+    <td><input type="number" step="0.01" class="cu-aire-r" placeholder="0"></td>
+    <td class="computed cu-vol-d">-</td>
+    <td class="computed cu-vol-r">-</td>
+    <td><button class="delete-btn" onclick="this.closest('tr').remove(); calculateCubature();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function calculateCubature() {
+  const method = document.getElementById('cu_method').value;
+  const rows = document.querySelectorAll('#cu_tbody tr');
+  let totalDeblai = 0, totalRemblai = 0;
+  const data = [];
+  
+  rows.forEach((row, i) => {
+    const section = row.querySelector('.cu-section').value;
+    const dist = parseFloat(row.querySelector('.cu-dist').value) || 0;
+    const aireD = parseFloat(row.querySelector('.cu-aire-d').value) || 0;
+    const aireR = parseFloat(row.querySelector('.cu-aire-r').value) || 0;
+    
+    let volD = 0, volR = 0;
+    if (i > 0 && dist > 0) {
+      const prevRow = rows[i-1];
+      const prevAireD = parseFloat(prevRow.querySelector('.cu-aire-d').value) || 0;
+      const prevAireR = parseFloat(prevRow.querySelector('.cu-aire-r').value) || 0;
+      
+      if (method === 'moyenne') {
+        // V = (A1 + A2) / 2 × L
+        volD = ((aireD + prevAireD) / 2) * dist;
+        volR = ((aireR + prevAireR) / 2) * dist;
+      } else if (method === 'prismatique') {
+        // V = L/6 × (A1 + 4×Am + A2)
+        const amD = (prevAireD + aireD) / 2;
+        const amR = (prevAireR + aireR) / 2;
+        volD = (dist / 6) * (prevAireD + 4*amD + aireD);
+        volR = (dist / 6) * (prevAireR + 4*amR + aireR);
+      } else {
+        // Simpson
+        volD = (dist / 6) * (prevAireD + 4*((prevAireD+aireD)/2) + aireD);
+        volR = (dist / 6) * (prevAireR + 4*((prevAireR+aireR)/2) + aireR);
+      }
+      
+      row.querySelector('.cu-vol-d').textContent = volD.toFixed(2);
+      row.querySelector('.cu-vol-r').textContent = volR.toFixed(2);
+    }
+    
+    totalDeblai += volD;
+    totalRemblai += volR;
+    data.push({ section, dist, aireD, aireR, volD, volR });
+  });
+  
+  const balance = totalDeblai - totalRemblai;
+  document.getElementById('cu_summary').innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Total Déblai</div>
+        <div class="summary-value" style="color:#fca5a5">${totalDeblai.toFixed(2)} m³</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Total Remblai</div>
+        <div class="summary-value" style="color:#34d399">${totalRemblai.toFixed(2)} m³</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Bilan</div>
+        <div class="summary-value">${balance >= 0 ? '+' : ''}${balance.toFixed(2)} m³</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Méthode</div>
+        <div class="summary-value" style="font-size:13px">${method}</div>
+      </div>
+    </div>
+    <div class="alert ${Math.abs(balance) < 10 ? 'alert-success' : 'alert-warning'}" style="margin-top:10px;">
+      <span>${balance > 0 ? '⬆️' : balance < 0 ? '⬇️' : '⚖️'}</span>
+      <span>${balance > 0 ? `Excédent de déblai : ${balance.toFixed(2)} m³` : balance < 0 ? `Besoin de remblai : ${Math.abs(balance).toFixed(2)} m³` : 'Équilibré'}</span>
+    </div>
+  `;
+  
+  window.cubatureData = { method, data, totalDeblai, totalRemblai, balance };
+  toast('✅ Cubature calculée');
+}
+
+// ============ TRIGONOMÉTRIQUE ============
+let trRowCount = 0;
+function addTrigoRow() {
+  trRowCount++;
+  const tbody = document.getElementById('tr_tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${trRowCount}</td>
+    <td><input type="text" class="tr-point" placeholder="P${trRowCount}"></td>
+    <td><input type="number" step="0.01" class="tr-dist" placeholder="Distance"></td>
+    <td><input type="number" step="0.0001" class="tr-angle" placeholder="90.0000"></td>
+    <td><input type="number" step="0.001" class="tr-hv" placeholder="1.500"></td>
+    <td class="computed tr-dh">-</td>
+    <td class="computed tr-cote">-</td>
+    <td><button class="delete-btn" onclick="this.closest('tr').remove();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function calculateTrigo() {
+  const coteStation = parseFloat(document.getElementById('tr_coteStation').value) || 0;
+  const hi = parseFloat(document.getElementById('tr_hi').value) || 0;
+  const rows = document.querySelectorAll('#tr_tbody tr');
+  const data = [];
+  
+  rows.forEach(row => {
+    const point = row.querySelector('.tr-point').value;
+    const dist = parseFloat(row.querySelector('.tr-dist').value);
+    const angle = parseFloat(row.querySelector('.tr-angle').value);
+    const hv = parseFloat(row.querySelector('.tr-hv').value) || 0;
+    
+    if (!isNaN(dist) && !isNaN(angle)) {
+      // ΔH = D × tan(90-V) + hi - hv (avec V en degrés)
+      const angleZenithal = (90 - angle) * Math.PI / 180;
+      const dh = dist * Math.tan(angleZenithal) + hi - hv;
+      const cote = coteStation + dh;
+      
+      row.querySelector('.tr-dh').textContent = (dh >= 0 ? '+' : '') + dh.toFixed(3);
+      row.querySelector('.tr-cote').textContent = cote.toFixed(3);
+      data.push({ point, dist, angle, hv, dh, cote });
+    } else {
+      row.querySelector('.tr-dh').textContent = '-';
+      row.querySelector('.tr-cote').textContent = '-';
+    }
+  });
+  
+  window.trigoData = { coteStation, hi, data };
+  toast(`✅ ${data.length} points calculés`);
+}
+
+// ============ EXPORT ============
+function exportData(format) {
+  const allData = {
+    project: document.getElementById('projectName').value || 'Sans nom',
+    date: new Date().toISOString(),
+    cheminement: window.cheminementData,
+    rayonnement: window.rayonnementData,
+    profil: window.profilData,
+    cubature: window.cubatureData,
+    trigo: window.trigoData
+  };
+  
+  if (format === 'pdf') return exportPDF(allData);
+  
+  let content = '', filename = '', mime = '';
+  
+  if (format === 'csv') {
+    content = 'SubTopo Engineering - Nivellement\n';
+    content += `Projet: ${allData.project}\n`;
+    content += `Date: ${new Date(allData.date).toLocaleString('fr-FR')}\n\n`;
+    
+    if (allData.cheminement) {
+      content += '=== CHEMINEMENT ===\n';
+      content += 'Point,AR,AV,Distance,ΔH,Cote\n';
+      allData.cheminement.data.forEach(d => {
+        content += `${d.point},${d.ar||''},${d.av||''},${d.dist||''},${d.dh.toFixed(3)},${d.cote.toFixed(3)}\n`;
+      });
+      content += `\nΣAR=${allData.cheminement.sumAR.toFixed(3)},ΣAV=${allData.cheminement.sumAV.toFixed(3)}\n\n`;
+    }
+    
+    if (allData.rayonnement) {
+      content += '=== RAYONNEMENT ===\n';
+      content += `Station: ${allData.rayonnement.coteStation}m, Plan visée: ${allData.rayonnement.planVisee.toFixed(3)}m\n`;
+      content += 'Point,Lecture,Cote\n';
+      allData.rayonnement.data.forEach(d => {
+        content += `${d.point},${d.lecture.toFixed(3)},${d.cote.toFixed(3)}\n`;
+      });
+      content += '\n';
+    }
+    
+    if (allData.profil) {
+      content += '=== PROFIL EN LONG ===\n';
+      content += 'Point,Distance,Cote TN,Cote Projet\n';
+      allData.profil.data.forEach(d => {
+        content += `${d.point},${d.dist},${d.tn},${d.proj||''}\n`;
+      });
+      content += `\nDéblai: ${allData.profil.sumDeblai.toFixed(2)}m, Remblai: ${allData.profil.sumRemblai.toFixed(2)}m\n\n`;
+    }
+    
+    if (allData.cubature) {
+      content += '=== CUBATURE ===\n';
+      content += `Méthode: ${allData.cubature.method}\n`;
+      content += 'Section,Distance,Aire Déblai,Aire Remblai,Vol Déblai,Vol Remblai\n';
+      allData.cubature.data.forEach(d => {
+        content += `${d.section},${d.dist},${d.aireD},${d.aireR},${d.volD.toFixed(2)},${d.volR.toFixed(2)}\n`;
+      });
+      content += `\nTotal Déblai: ${allData.cubature.totalDeblai.toFixed(2)}m³, Total Remblai: ${allData.cubature.totalRemblai.toFixed(2)}m³\n`;
+    }
+    
+    filename = `nivellement-${Date.now()}.csv`;
+    mime = 'text/csv';
+  } else if (format === 'txt') {
+    content = generateTextReport(allData);
+    filename = `nivellement-${Date.now()}.txt`;
+    mime = 'text/plain';
+  } else if (format === 'dxf') {
+    content = generateDXF(allData);
+    filename = `nivellement-${Date.now()}.dxf`;
+    mime = 'application/dxf';
+  }
+  
+  downloadFile(content, filename, mime);
+  toast(`✅ Export ${format.toUpperCase()} OK`);
+}
+
+function generateTextReport(data) {
+  let r = `═══════════════════════════════════════
+   SUBTOPO ENGINEERING - NIVELLEMENT
+═══════════════════════════════════════
+
+Projet : ${data.project}
+Date   : ${new Date(data.date).toLocaleString('fr-FR')}
+
+`;
+  
+  if (data.cheminement) {
+    r += `─────────────── CHEMINEMENT ───────────────\n`;
+    r += `Type: ${data.cheminement.chType}\n`;
+    r += `Cote départ: ${data.cheminement.coteStart}m\n\n`;
+    r += `Pt   | AR     | AV     | Dist | ΔH      | Cote\n`;
+    r += `─────────────────────────────────────────────────\n`;
+    data.cheminement.data.forEach(d => {
+      r += `${(d.point||'').padEnd(5)}| ${String(d.ar||'-').padEnd(6)} | ${String(d.av||'-').padEnd(6)} | ${String(d.dist||'-').padEnd(4)} | ${d.dh.toFixed(3).padEnd(7)} | ${d.cote.toFixed(3)}\n`;
+    });
+    r += `─────────────────────────────────────────────────\n`;
+    r += `Σ AR = ${data.cheminement.sumAR.toFixed(3)}m\n`;
+    r += `Σ AV = ${data.cheminement.sumAV.toFixed(3)}m\n`;
+    if (data.cheminement.chType !== 'ouvert') {
+      r += `Erreur fz = ${(data.cheminement.fz*1000).toFixed(2)}mm\n`;
+      r += `Tolérance T = ±${data.cheminement.T.toFixed(2)}mm\n`;
+    }
+    r += '\n';
+  }
+  
+  if (data.rayonnement) {
+    r += `─────────────── RAYONNEMENT ───────────────\n`;
+    r += `Cote station: ${data.rayonnement.coteStation}m\n`;
+    r += `Plan de visée: ${data.rayonnement.planVisee.toFixed(3)}m\n\n`;
+    r += `Pt   | Lecture | Cote\n`;
+    r += `──────────────────────\n`;
+    data.rayonnement.data.forEach(d => {
+      r += `${(d.point||'').padEnd(5)}| ${d.lecture.toFixed(3).padEnd(7)} | ${d.cote.toFixed(3)}\n`;
+    });
+    r += '\n';
+  }
+  
+  if (data.profil) {
+    r += `─────────────── PROFIL EN LONG ───────────────\n`;
+    r += `Pente moyenne: ${data.profil.pente}%\n`;
+    r += `Dénivelé max: ${data.profil.denMax.toFixed(2)}m\n`;
+    r += `Σ Déblai: ${data.profil.sumDeblai.toFixed(2)}m\n`;
+    r += `Σ Remblai: ${data.profil.sumRemblai.toFixed(2)}m\n\n`;
+  }
+  
+  if (data.cubature) {
+    r += `─────────────── CUBATURE ───────────────\n`;
+    r += `Méthode: ${data.cubature.method}\n`;
+    r += `Total Déblai: ${data.cubature.totalDeblai.toFixed(2)}m³\n`;
+    r += `Total Remblai: ${data.cubature.totalRemblai.toFixed(2)}m³\n`;
+    r += `Bilan: ${data.cubature.balance.toFixed(2)}m³\n\n`;
+  }
+  
+  if (data.trigo) {
+    r += `─────────────── NIVELLEMENT TRIGONOMÉTRIQUE ───────────────\n`;
+    r += `Cote station: ${data.trigo.coteStation}m, hi=${data.trigo.hi}m\n\n`;
+    r += `Pt   | Dist  | Angle    | hv    | ΔH      | Cote\n`;
+    r += `──────────────────────────────────────────────────\n`;
+    data.trigo.data.forEach(d => {
+      r += `${(d.point||'').padEnd(5)}| ${String(d.dist).padEnd(5)} | ${String(d.angle).padEnd(8)} | ${String(d.hv).padEnd(5)} | ${d.dh.toFixed(3).padEnd(7)} | ${d.cote.toFixed(3)}\n`;
+    });
+    r += '\n';
+  }
+  
+  r += `═══════════════════════════════════════
+SubTopo Engineering
+Developed by NASRAOUI FATHI
+═══════════════════════════════════════`;
+  
+  return r;
+}
+
+function generateDXF(data) {
+  let dxf = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n';
+  dxf += '0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n2\n';
+  dxf += '0\nLAYER\n2\nPROFIL\n70\n0\n62\n3\n6\nCONTINUOUS\n';
+  dxf += '0\nLAYER\n2\nTEXT\n70\n0\n62\n7\n6\nCONTINUOUS\n';
+  dxf += '0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+  
+  if (data.profil && data.profil.data.length > 1) {
+    const pts = data.profil.data;
+    dxf += '0\nPOLYLINE\n8\nPROFIL\n66\n1\n10\n0\n20\n0\n30\n0\n70\n0\n';
+    pts.forEach(p => {
+      dxf += `0\nVERTEX\n8\nPROFIL\n10\n${p.dist.toFixed(3)}\n20\n${p.tn.toFixed(3)}\n30\n0\n`;
+    });
+    dxf += '0\nSEQEND\n';
+    pts.forEach(p => {
+      dxf += `0\nTEXT\n8\nTEXT\n10\n${p.dist.toFixed(3)}\n20\n${(p.tn+0.5).toFixed(3)}\n30\n0\n40\n0.5\n1\n${p.point} z=${p.tn}\n`;
+    });
+  }
+  
+  dxf += '0\nENDSEC\n0\nEOF\n';
+  return dxf;
+}
+
+async function exportPDF(data) {
+  toast('📸 Génération PDF...');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  const emerald=[16,185,129], dark=[10,46,42];
+  
+  doc.setFillColor(...dark);
+  doc.rect(0, 0, 210, 30, 'F');
+  doc.setFillColor(...emerald);
+  doc.rect(0, 30, 210, 2, 'F');
+  
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('SubTopo Engineering', 15, 14);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text('Rapport de Nivellement Topographique', 15, 22);
+  doc.setFontSize(8);
+  doc.text('Developed by NASRAOUI FATHI', 15, 27);
+  
+  let y = 42;
+  doc.setTextColor(...dark);
+  doc.setFontSize(12); doc.setFont('helvetica','bold');
+  doc.text(`Projet : ${data.project}`, 15, y); y += 6;
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text(`Date : ${new Date(data.date).toLocaleString('fr-FR')}`, 15, y); y += 10;
+  
+  const drawSection = (title) => {
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.setFillColor(...dark); doc.rect(15, y, 180, 7, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text(title, 18, y+5); y += 11;
+  };
+  
+  const drawText = (txt, size=9) => {
+    if (y > 280) { doc.addPage(); y = 20; }
+    doc.setTextColor(...dark); doc.setFont('helvetica','normal'); doc.setFontSize(size);
+    doc.text(txt, 18, y); y += 5;
+  };
+  
+  if (data.cheminement) {
+    drawSection('CHEMINEMENT DE NIVELLEMENT');
+    drawText(`Type: ${data.cheminement.chType}  |  Cote départ: ${data.cheminement.coteStart}m`);
+    drawText(`Σ AR = ${data.cheminement.sumAR.toFixed(3)}m  |  Σ AV = ${data.cheminement.sumAV.toFixed(3)}m`);
+    if (data.cheminement.chType !== 'ouvert') {
+      drawText(`Erreur fz = ${(data.cheminement.fz*1000).toFixed(2)}mm  |  Tolérance = ±${data.cheminement.T.toFixed(2)}mm`);
+    }
+    y += 3;
+    doc.setFillColor(240,253,250); doc.rect(15, y, 180, 6, 'F');
+    doc.setFontSize(8); doc.setTextColor(...dark); doc.setFont('helvetica','bold');
+    doc.text('Pt', 18, y+4); doc.text('AR', 40, y+4); doc.text('AV', 65, y+4);
+    doc.text('Dist', 90, y+4); doc.text('ΔH', 115, y+4); doc.text('Cote', 145, y+4);
+    y += 6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    data.cheminement.data.forEach((d, idx) => {
+      if (y > 280) { doc.addPage(); y = 20; }
+      if (idx % 2 === 0) { doc.setFillColor(248,250,250); doc.rect(15, y, 180, 5, 'F'); }
+      doc.setTextColor(...dark);
+      doc.text(String(d.point||''), 18, y+3.5);
+      doc.text(d.ar ? d.ar.toFixed(3) : '-', 40, y+3.5);
+      doc.text(d.av ? d.av.toFixed(3) : '-', 65, y+3.5);
+      doc.text(d.dist ? d.dist.toFixed(1) : '-', 90, y+3.5);
+      doc.text(d.dh.toFixed(3), 115, y+3.5);
+      doc.text(d.cote.toFixed(3), 145, y+3.5);
+      y += 5;
+    });
+    y += 5;
+  }
+  
+  if (data.rayonnement) {
+    drawSection('RAYONNEMENT');
+    drawText(`Cote station: ${data.rayonnement.coteStation}m  |  Plan visée: ${data.rayonnement.planVisee.toFixed(3)}m`);
+    y += 3;
+    data.rayonnement.data.forEach(d => {
+      if (y > 280) { doc.addPage(); y = 20; }
+      drawText(`${d.point} : Lecture=${d.lecture.toFixed(3)}m → Cote=${d.cote.toFixed(3)}m`);
+    });
+    y += 3;
+  }
+  
+  if (data.profil) {
+    drawSection('PROFIL EN LONG');
+    drawText(`Pente: ${data.profil.pente}%  |  Dénivelé: ${data.profil.denMax.toFixed(2)}m`);
+    drawText(`Déblai: ${data.profil.sumDeblai.toFixed(2)}m  |  Remblai: ${data.profil.sumRemblai.toFixed(2)}m`);
+    y += 3;
+  }
+  
+  if (data.cubature) {
+    drawSection('CUBATURE - VOLUMES');
+    drawText(`Méthode: ${data.cubature.method}`);
+    drawText(`Total Déblai: ${data.cubature.totalDeblai.toFixed(2)} m³`);
+    drawText(`Total Remblai: ${data.cubature.totalRemblai.toFixed(2)} m³`);
+    drawText(`Bilan: ${data.cubature.balance.toFixed(2)} m³`);
+    y += 3;
+  }
+  
+  if (data.trigo) {
+    drawSection('NIVELLEMENT TRIGONOMETRIQUE');
+    drawText(`Cote station: ${data.trigo.coteStation}m  |  hi: ${data.trigo.hi}m`);
+    y += 3;
+    data.trigo.data.forEach(d => {
+      if (y > 280) { doc.addPage(); y = 20; }
+      drawText(`${d.point} : D=${d.dist}m, V=${d.angle}°, hv=${d.hv}m → Cote=${d.cote.toFixed(3)}m`);
+    });
+  }
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...dark); doc.rect(0, 287, 210, 10, 'F');
+    doc.setFontSize(7); doc.setTextColor(255,255,255);
+    doc.text('SubTopo Engineering - NASRAOUI FATHI', 105, 293, { align:'center' });
+    doc.text(`Page ${i}/${pageCount}`, 195, 293, { align:'right' });
+  }
+  
+  doc.save(`nivellement-${Date.now()}.pdf`);
+  toast('✅ PDF généré');
+}
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============ SAUVEGARDE ============
+function saveProject() {
+  const name = document.getElementById('projectName').value;
+  if (!name) return toast('❌ Nom requis');
+  const allData = {
+    project: name,
+    date: new Date().toISOString(),
+    cheminement: window.cheminementData,
+    rayonnement: window.rayonnementData,
+    profil: window.profilData,
+    cubature: window.cubatureData,
+    trigo: window.trigoData
+  };
+  localStorage.setItem(`niv_project_${name}`, JSON.stringify(allData));
+  toast('✅ Projet sauvegardé');
+}
+
+function loadProject() {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('niv_project_'));
+  if (keys.length === 0) return toast('❌ Aucun projet');
+  const list = keys.map(k => k.replace('niv_project_', '')).join('\n');
+  const name = prompt('Projets disponibles:\n' + list + '\n\nNom du projet à charger:');
+  if (!name) return;
+  const data = localStorage.getItem(`niv_project_${name}`);
+  if (!data) return toast('❌ Projet introuvable');
+  toast(`✅ Projet "${name}" chargé`);
+}
+
+// ============ PWA ============
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('✅ SW OK'))
+      .catch(err => console.error('❌ SW:', err));
+  });
+}
+</script>
+</body>
+</html>
